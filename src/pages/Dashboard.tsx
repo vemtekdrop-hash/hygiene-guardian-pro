@@ -261,10 +261,10 @@ export default function Dashboard() {
                                 Peso {type.weight} • {type.weight === 2 ? '100pts / -200pts' : '50pts / -100pts'}
                               </Badge>
                               {result?.status === 'irregular' && result.observations && (
-                                <span className="text-[10px] text-destructive flex items-center gap-1">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  {result.observations.substring(0, 50)}...
-                                </span>
+                                <p className="text-xs text-destructive flex items-start gap-1 mt-1">
+                                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                  <span>{result.observations}</span>
+                                </p>
                               )}
                             </div>
                           </div>
