@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Visit, Branch, getEvaluation } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Layout from '@/components/Layout';
-import { CalendarDays } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { CalendarDays, Trash2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export default function Logs() {
+  const { isAdmin } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -30,6 +34,17 @@ export default function Logs() {
     if (selectedBranch !== 'all') query = query.eq('branch_id', selectedBranch);
     const { data } = await query;
     if (data) setVisits(data as Visit[]);
+  };
+
+  const handleDelete = async (visitId: string) => {
+    await supabase.from('inspection_results').delete().eq('visit_id', visitId);
+    const { error } = await supabase.from('visits').delete().eq('id', visitId);
+    if (error) {
+      toast({ title: 'Erro ao excluir visita', variant: 'destructive' });
+    } else {
+      toast({ title: 'Visita excluída com sucesso' });
+      setVisits(prev => prev.filter(v => v.id !== visitId));
+    }
   };
 
   return (
@@ -82,6 +97,11 @@ export default function Logs() {
                         <p className="text-xs text-muted-foreground">{visit.total_score}/{visit.max_score} pts</p>
                       </div>
                       <Badge className={`${eval_.className} min-w-[100px] justify-center`}>{eval_.label}</Badge>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(visit.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
