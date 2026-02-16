@@ -43,13 +43,6 @@ export default function Settings() {
     setLoadingUsers(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke('manage-users', {
-        body: null,
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      // Use fetch directly for GET with query params
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-users?action=list`,
         {

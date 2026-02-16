@@ -11,10 +11,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-    // Verify the caller is authenticated
+    if (!supabaseUrl || !supabaseServiceKey || !supabaseAnonKey) {
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -23,8 +30,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create client with user's token to verify they're admin
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "", {
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
@@ -36,7 +42,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if caller is admin using service role client
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
@@ -56,7 +61,6 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get("action");
 
     if (req.method === "GET" && action === "list") {
-      // List all users with their profiles and roles
       const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers();
       if (listError) throw listError;
 
@@ -86,7 +90,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Prevent removing own admin role
       if (user_id === user.id && role !== "admin") {
         return new Response(JSON.stringify({ error: "Você não pode remover seu próprio papel de admin." }), {
           status: 400,
@@ -94,7 +97,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Upsert the role
       const { data: existing } = await adminClient
         .from("user_roles")
         .select("id")
